@@ -1,0 +1,113 @@
+  <html>
+  <head>
+  </head>
+  <body>
+      open developer console
+  </body>
+  <script type="text/javascript" src="sails.io.js"></script>
+  <script type="text/javascript">
+
+
+        function getParameterByName(name) {
+            
+            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+            results = regex.exec(location.search);
+            return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+        }
+        
+        function parseJWR(data, jwres, cb) {
+            
+            
+            if(typeof cb !== 'function') {
+                
+                return;
+            }
+            
+            if(jwres.statusCode !== 200) {
+                
+                cb(jwres.body.message, null);
+            }
+            else {
+                
+                cb(null, data);
+            }
+        }
+        
+        function onConnect() {
+            
+            console.log(events.SERVER_PLAYER_JOINED);
+            io.socket.on(events.SERVER_PLAYER_JOINED, playerJoined);
+            //no GET param
+            if(serverID === '') {
+                
+                console.log('No server_id param given, creating a new one');
+                createServer(1, servername, playerMax, function(err, data) {
+                    
+                    if(!err) {
+                        console.log(data);
+                    }
+                    else {
+                        console.log(err);
+                    }
+                });
+            }
+            else {
+                
+                console.log('joining to server #' + serverID);
+                joinServer(serverID, username, function(err, data) {
+
+                    if(!err) {
+                        console.log(data);
+                    }
+                    else {
+                        console.log(err);
+                    }
+                });
+            }
+        };
+        
+        function playerJoined(data) {
+            
+            console.log(data);
+            
+        };
+        
+        function joinServer(id, username, cb) {
+            
+            io.socket.put('/api/server/' + id + '/join', {name: username}, function (data, jwres){
+                
+                parseJWR(data, jwres, cb);
+            });
+        };
+        
+        function createServer(gameID, serverName, playerMax, cb) {
+            
+            io.socket.post('/api/server', {game_id: gameID, name: serverName, player_max: playerMax}, function(data, jwres) {
+                    
+                parseJWR(data, jwres, cb);
+            });
+        };
+        
+        
+        var events = {
+            SERVER_PLAYER_JOINED : 'server:playerjoin'
+        };
+        
+        var serverID = getParameterByName('server_id');
+        var gameID = getParameterByName('game_id');
+        var username = getParameterByName('username');
+        var servername = getParameterByName('servername');
+        var playerMax = getParameterByName('player_max');
+        
+        username = username === '' ? 'moehlone' : username;
+        servername = servername === '' ? 'Testserver' : servername;
+        playerMax = playerMax === '' ? 20 : playerMax;
+        
+	io.sails.url = 'http://localhost:1337';
+	//io.sails.useCORSRouteToGetCookie = false;
+
+        io.socket.on('connect', onConnect);
+
+  </script>
+</html>
